@@ -2,7 +2,7 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "cv_bridge/cv_bridge.hpp"
 #include "opencv2/opencv.hpp"
-#include <visuallization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 #include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_listener.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -52,7 +52,7 @@ public:
 private:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr cam_data;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_sub;
-    rclcpp::Publsher<geometry_msgs::msg::PointStamped>::SharedPtr target_obj_pose_pub;
+    rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr target_obj_pose_pub;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub;
     cv::Mat depth_image;
 
@@ -79,7 +79,7 @@ private:
 
     void imgModification(const sensor_msgs::msg::Image::SharedPtr msg) {
 
-      auto marker_msg = geometry_msgs::msg::Marker();
+      auto marker_msg = visualization_msgs::msg::Marker();
 
         if (!msg || msg->data.empty()) {
             RCLCPP_WARN(this->get_logger(), "Received an empty message.");
@@ -172,13 +172,22 @@ private:
                             target_obj_pose_pub->publish(output_point);
 
                             marker_msg.type = visualization_msgs::msg::Marker::SPHERE;
-                            marker_msg.header.frame_id = "base_link";
-                            marker.scale.x = 0.05, y = 0.05, z = 0.05;
-                            marker.color.r = 1.0, g = 0.0, b = 0.0, a = 1.0;
-                            marker.pose.position = {output_point.point.x , output_point.point.y , output_point.point.z};
-                            marker_pub->publish(marker_msg);
 
+                            marker_msg.header.frame_id = "base_link";
+                            marker_msg.header.stamp = this->now();
+                            marker_msg.action = visualization_msgs::msg::Marker::ADD;
                             
+                            marker_msg.scale.x = 0.05;
+                            marker_msg.scale.y = 0.05;
+                            marker_msg.scale.z = 0.05;
+                            
+                            marker_msg.color.r = 1.0;
+                            marker_msg.color.g = 0.0;
+                            marker_msg.color.b = 0.0;
+                            marker_msg.color.a = 1.0;
+                            
+                            marker_msg.pose.position = output_point.point;
+                            marker_pub->publish(marker_msg);  
 
                         }
                         catch (const tf2::TransformException& e) {
