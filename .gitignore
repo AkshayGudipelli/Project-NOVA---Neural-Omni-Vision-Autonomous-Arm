@@ -1,0 +1,18 @@
+# ROS 2 Build & Install Artifacts
+build/
+install/
+log/
+
+# Pixi Environment
+.pixi/
+
+# OS & Editor Files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python Cache
+__pycache__/
+*.pyc

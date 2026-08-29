@@ -1,0 +1,160 @@
+<mujoco model="diy_6dof_arm_workspace">
+    <compiler angle="radian" autolimits="true"/>
+    <option gravity="0 0 -9.81" timestep="0.002"/>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+        <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2" width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
+        <material name="matplane" reflectance="0.3" texture="texplane" texrepeat="1 1" texuniform="true"/>
+        <material name="wood_table" rgba="0.55 0.35 0.2 1" reflectance="0.2"/>
+    </asset>
+
+    <default>
+        <default class="arm_geom">
+            <geom contype="0" conaffinity="0" group="2"/>
+        </default>
+        <default class="tool_geom">
+            <geom contype="1" conaffinity="1" friction="1 0.005 0.0001"/>
+        </default>
+        <joint damping="0.1" armature="0.01"/>
+    </default>
+
+    <worldbody>
+        <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 5" dir="0 0 -1"/>
+        <geom name="floor" type="plane" pos="0 0 0" size="2 2 .5" material="matplane" contype="1" conaffinity="1"/>
+        
+        <!-- Large Workbench Table (Top surface at Z = 0.42m) -->
+        <body name="table" pos="0 0 0.4">
+            <geom type="box" size="0.4 0.4 0.02" material="wood_table" class="tool_geom"/>
+            <!-- Table Legs -->
+            <geom type="box" size="0.025 0.025 0.2" pos="0.35 0.35 -0.2" rgba="0.2 0.2 0.2 1"/>
+            <geom type="box" size="0.025 0.025 0.2" pos="-0.35 0.35 -0.2" rgba="0.2 0.2 0.2 1"/>
+            <geom type="box" size="0.025 0.025 0.2" pos="0.35 -0.35 -0.2" rgba="0.2 0.2 0.2 1"/>
+            <geom type="box" size="0.025 0.025 0.2" pos="-0.35 -0.35 -0.2" rgba="0.2 0.2 0.2 1"/>
+        </body>
+
+        <!-- Elevated Over-The-Shoulder Camera (Behind Arm Base, Above Home Height) -->
+        <body name="camera_mount" pos="0 -0.28 0.42">
+            <!-- Stand Pole (Height = 0.46m above table, total Z = 0.88m) -->
+            <geom type="cylinder" size="0.012 0.23" pos="0 0 0.23" rgba="0.2 0.2 0.2 1" class="arm_geom"/>
+            <!-- Camera Housing -->
+            <geom type="box" size="0.04 0.025 0.02" pos="0 0.015 0.46" rgba="0.15 0.15 0.15 1" class="arm_geom"/>
+            <!-- Camera Lens (Bends down towards the table & end-effector movement) -->
+            <camera name="workspace_camera" pos="0 0.025 0.46" xyaxes="1 0 0 0 0.77 0.63" fovy="70"/>
+        </body>
+
+
+
+
+        <!-- DIY 6-DOF Robot Arm Mounted on Table at Z = 0.42m -->
+        <body name="base_link" pos="0 -0.15 0.42">
+            <geom type="box" size="0.06 0.06 0.01" pos="0 0 0.01" rgba="0.15 0.15 0.15 1" class="tool_geom"/>
+
+            <!-- Joint 1: Base Pan (Full -1.5708 to +1.5708 rad / -90 to +90 deg) -->
+            <body name="link1" pos="0 0 0.02">
+                <joint name="joint1" type="hinge" axis="0 0 1" range="-1.5708 1.5708"/>
+                <geom type="cylinder" size="0.03 0.03" pos="0 0 0.03" rgba="0.2 0.2 0.25 1" class="arm_geom"/>
+
+                <!-- Joint 2: Shoulder Pitch (-1.5708 to +1.5708 rad) -->
+                <body name="link2" pos="0 0 0.06">
+                    <joint name="joint2" type="hinge" axis="0 1 0" range="-1.5708 1.5708"/>
+                    <geom type="box" size="0.015 0.02 0.0525" pos="0 0 0.0525" rgba="0.2 0.2 0.25 1" class="arm_geom"/>
+
+                    <!-- Joint 3: Elbow Pitch (-1.5708 to +1.5708 rad) -->
+                    <body name="link3" pos="0 0 0.105">
+                        <joint name="joint3" type="hinge" axis="0 1 0" range="-1.5708 1.5708"/>
+                        <geom type="box" size="0.0125 0.0175 0.0475" pos="0 0 0.0475" rgba="0.2 0.2 0.25 1" class="arm_geom"/>
+
+                        <!-- Joint 4: Wrist Pitch (-1.5708 to +1.5708 rad) -->
+                        <body name="link4" pos="0 0 0.095">
+                            <joint name="joint4" type="hinge" axis="0 1 0" range="-1.5708 1.5708"/>
+                            <geom type="box" size="0.0125 0.0125 0.02" pos="0 0 0.02" rgba="0.1 0.3 0.8 1" class="arm_geom"/>
+
+                            <!-- Joint 5: Wrist Roll (-3.1415 to +3.1415 rad) -->
+                            <body name="link5" pos="0 0 0.04">
+                                <joint name="joint5" type="hinge" axis="1 0 0" range="-3.1415 3.1415"/>
+                                <geom type="cylinder" size="0.02 0.015" pos="0 0 0.015" rgba="0.2 0.2 0.25 1" class="arm_geom"/>
+
+                                <!-- Gripper Left Finger -->
+                                <body name="left_finger" pos="0.015 0 0.03">
+                                    <joint name="gripper_left_joint" type="slide" axis="1 0 0" range="0 0.03"/>
+                                    <geom type="box" size="0.0025 0.0075 0.025" pos="0 0 0.025" rgba="0.15 0.15 0.15 1" class="tool_geom"/>
+                                </body>
+
+                                <!-- Gripper Right Finger -->
+                                <body name="right_finger" pos="-0.015 0 0.03">
+                                    <joint name="gripper_right_joint" type="slide" axis="-1 0 0" range="0 0.03"/>
+                                    <geom type="box" size="0.0025 0.0075 0.025" pos="0 0 0.025" rgba="0.15 0.15 0.15 1" class="tool_geom"/>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+
+        <!-- CENTER OBJECTS -->
+        <body name="red_cube" pos="0.0 0.125 0.445">
+            <freejoint/>
+            <geom type="box" size="0.02 0.02 0.02" rgba="1 0 0 1" mass="0.05" class="tool_geom"/>
+        </body>
+
+        <body name="yellow_sphere" pos="0.0 0.16 0.44">
+            <freejoint/>
+            <geom type="sphere" size="0.02" rgba="1 1 0 1" mass="0.03" class="tool_geom"/>
+        </body>
+
+        <!-- LEFT SIDE OBJECTS -->
+        <body name="blue_cylinder" pos="-0.08 0.10 0.45">
+            <freejoint/>
+            <geom type="cylinder" size="0.02 0.03" rgba="0 0 1 1" mass="0.05" class="tool_geom"/>
+        </body>
+
+        <body name="orange_cube" pos="-0.16 0.02 0.445">
+            <freejoint/>
+            <geom type="box" size="0.02 0.02 0.02" rgba="1 0.5 0 1" mass="0.05" class="tool_geom"/>
+        </body>
+
+        <body name="cyan_cylinder" pos="-0.20 -0.05 0.45">
+            <freejoint/>
+            <geom type="cylinder" size="0.018 0.035" rgba="0 1 1 1" mass="0.05" class="tool_geom"/>
+        </body>
+
+        <body name="white_sphere" pos="-0.14 -0.08 0.44">
+            <freejoint/>
+            <geom type="sphere" size="0.02" rgba="1 1 1 1" mass="0.03" class="tool_geom"/>
+        </body>
+
+        <!-- RIGHT SIDE OBJECTS -->
+        <body name="green_cuboid" pos="0.08 0.10 0.44">
+            <freejoint/>
+            <geom type="box" size="0.015 0.04 0.015" rgba="0 1 0 1" mass="0.05" class="tool_geom"/>
+        </body>
+
+        <body name="purple_box" pos="0.16 0.02 0.445">
+            <freejoint/>
+            <geom type="box" size="0.025 0.02 0.02" rgba="0.6 0 0.8 1" mass="0.05" class="tool_geom"/>
+        </body>
+
+        <body name="magenta_cylinder" pos="0.20 -0.05 0.45">
+            <freejoint/>
+            <geom type="cylinder" size="0.02 0.03" rgba="1 0 1 1" mass="0.05" class="tool_geom"/>
+        </body>
+
+        <body name="black_sphere" pos="0.14 -0.08 0.44">
+            <freejoint/>
+            <geom type="sphere" size="0.02" rgba="0.2 0.2 0.2 1" mass="0.03" class="tool_geom"/>
+        </body>
+    </worldbody>
+
+    <!-- Position Actuators with Explicit Full Control Ranges -->
+    <actuator>
+        <position name="srv_base_pan" joint="joint1" kp="30" kv="3" ctrlrange="-1.5708 1.5708"/>
+        <position name="srv_shoulder_pitch" joint="joint2" kp="50" kv="5" ctrlrange="-1.5708 1.5708"/>
+        <position name="srv_elbow_pitch" joint="joint3" kp="40" kv="4" ctrlrange="-1.5708 1.5708"/>
+        <position name="srv_wrist_pitch" joint="joint4" kp="20" kv="2" ctrlrange="-1.5708 1.5708"/>
+        <position name="srv_wrist_roll" joint="joint5" kp="20" kv="2" ctrlrange="-3.1415 3.1415"/>
+        <position name="srv_gripper_left" joint="gripper_left_joint" kp="100" kv="5" ctrlrange="0 0.03"/>
+        <position name="srv_gripper_right" joint="gripper_right_joint" kp="100" kv="5" ctrlrange="0 0.03"/>
+    </actuator>
+</mujoco>
