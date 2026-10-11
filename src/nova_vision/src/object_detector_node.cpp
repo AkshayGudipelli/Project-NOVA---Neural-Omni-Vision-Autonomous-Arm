@@ -103,13 +103,13 @@ private:
         cv::Mat hsv_img;
         cv::cvtColor(cv_ptr->image, hsv_img, cv::COLOR_BGR2HSV);
 
-        // Step 4.1b: Apply Color Threshold Mask for Target Object (Orange)
-        cv::Mat mask;
-        cv::Scalar lower_bound = cv::Scalar(10, 100, 100);
-        cv::Scalar upper_bound = cv::Scalar(25, 255, 255);
-        cv::inRange(hsv_img, lower_bound, upper_bound, mask);
+        // Step 4.1b: Apply Color Threshold Mask for Target Object (Red Cube)
+        cv::Mat mask1, mask2, mask;
+        cv::inRange(hsv_img, cv::Scalar(0, 120, 70), cv::Scalar(10, 255, 255), mask1);
+        cv::inRange(hsv_img, cv::Scalar(170, 120, 70), cv::Scalar(180, 255, 255), mask2);
+        cv::bitwise_or(mask1, mask2, mask);
 
-        // Step 4.1c: Find Contours & Identify Largest Shape (Filtering Noise)
+        // Step 4.1c: Find Contours & Identify Target Shape (Filtering Noise & Table Background)
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
@@ -119,7 +119,8 @@ private:
         if (!contours.empty()) {
             for (size_t i = 0; i < contours.size(); i++) {
                 double area = cv::contourArea(contours[i]);
-                if (area > max_area) {
+                // Target the red cube (~940 px), reject background (> 5,000 px) and noise (< 100 px)
+                if (area > 100.0 && area < 5000.0 && area > max_area) {
                     max_area = area;
                     max_idx = i;
                 }
@@ -138,7 +139,7 @@ private:
                 // PHASE 4.2: DEPTH LOOKUP & PINHOLE BACK-PROJECTION (CAMERA FRAME)
                 // ----------------------------------------------------------------------
                 if (!depth_image.empty()) {
-                    // 5x5 Median depth lookup to filter noise and ignore foreground arm links (< 0.30m)
+                    // 5x5 Median depth lookup to filter noise
                     float Z_cam = 0.0f;
                     std::vector<float> valid_depths;
                     int u_int = static_cast<int>(u);
@@ -149,7 +150,7 @@ private:
                             int py = std::clamp(v_int + dy, 0, depth_image.rows - 1);
                             int px = std::clamp(u_int + dx, 0, depth_image.cols - 1);
                             float d = depth_image.at<float>(py, px);
-                            if (d > 0.30f && d < 2.0f) { // Tabletop workspace depth range
+                            if (d > 0.15f && d < 2.0f) { // Tabletop workspace depth range
                                 valid_depths.push_back(d);
                             }
                         }
@@ -160,7 +161,7 @@ private:
                         Z_cam = valid_depths[valid_depths.size() / 2];
                     }
 
-                    if (Z_cam > 0.30f) {
+                    if (Z_cam > 0.15f) {
                         // Apply Pinhole Camera Back-Projection Formulas
                         double X_cam = ((u - cx) * Z_cam) / fx;
                         double Y_cam = ((v - cy) * Z_cam) / fy;

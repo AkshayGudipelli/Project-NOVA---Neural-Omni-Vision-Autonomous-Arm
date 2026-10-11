@@ -16,3 +16,8 @@ log/
 # Python Cache
 __pycache__/
 *.pyc
+
+# Simulation & Build Logs
+MUJOCO_LOG.TXT
+tools/ik_cli
+

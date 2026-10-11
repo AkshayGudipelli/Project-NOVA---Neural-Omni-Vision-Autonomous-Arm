@@ -34,6 +34,7 @@ ament_target_dependencies(joint_controller_node
 
 # Build Analytical IK Solver Node
 add_executable(ik_solver_node src/ik_solver_node.cpp)
+target_include_directories(ik_solver_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 ament_target_dependencies(ik_solver_node
   rclcpp
   geometry_msgs

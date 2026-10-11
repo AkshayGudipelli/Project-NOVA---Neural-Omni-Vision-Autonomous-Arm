@@ -51,12 +51,12 @@
             <geom type="box" size="0.06 0.06 0.01" pos="0 0 0.01" rgba="0.15 0.15 0.15 1" class="tool_geom"/>
 
             <!-- Joint 1: Base Pan (Full -1.5708 to +1.5708 rad / -90 to +90 deg) -->
-            <body name="link1" pos="0 0 0.02">
+            <body name="link1" pos="0 0 0.02" euler="0 0 1.5708">
                 <joint name="joint1" type="hinge" axis="0 0 1" range="-1.5708 1.5708"/>
                 <geom type="cylinder" size="0.03 0.03" pos="0 0 0.03" rgba="0.2 0.2 0.25 1" class="arm_geom"/>
 
                 <!-- Joint 2: Shoulder Pitch (-1.5708 to +1.5708 rad) -->
-                <body name="link2" pos="0 0 0.06">
+                <body name="link2" pos="0 0 0.05">
                     <joint name="joint2" type="hinge" axis="0 1 0" range="-1.5708 1.5708"/>
                     <geom type="box" size="0.015 0.02 0.0525" pos="0 0 0.0525" rgba="0.2 0.2 0.25 1" class="arm_geom"/>
 
@@ -93,8 +93,8 @@
             </body>
         </body>
 
-        <!-- CENTER OBJECTS -->
-        <body name="red_cube" pos="0.0 0.125 0.445">
+        <!-- CENTER / RIGHT OBJECTS -->
+        <body name="red_cube" pos="0.10 0.04 0.445">
             <freejoint/>
             <geom type="box" size="0.02 0.02 0.02" rgba="1 0 0 1" mass="0.05" class="tool_geom"/>
         </body>
@@ -149,11 +149,11 @@
 
     <!-- Position Actuators with Explicit Full Control Ranges -->
     <actuator>
-        <position name="srv_base_pan" joint="joint1" kp="30" kv="3" ctrlrange="-1.5708 1.5708"/>
-        <position name="srv_shoulder_pitch" joint="joint2" kp="50" kv="5" ctrlrange="-1.5708 1.5708"/>
-        <position name="srv_elbow_pitch" joint="joint3" kp="40" kv="4" ctrlrange="-1.5708 1.5708"/>
-        <position name="srv_wrist_pitch" joint="joint4" kp="20" kv="2" ctrlrange="-1.5708 1.5708"/>
-        <position name="srv_wrist_roll" joint="joint5" kp="20" kv="2" ctrlrange="-3.1415 3.1415"/>
+        <position name="srv_base_pan" joint="joint1" kp="120" kv="6" ctrlrange="-1.5708 1.5708"/>
+        <position name="srv_shoulder_pitch" joint="joint2" kp="200" kv="10" ctrlrange="-1.5708 1.5708"/>
+        <position name="srv_elbow_pitch" joint="joint3" kp="160" kv="8" ctrlrange="-1.5708 1.5708"/>
+        <position name="srv_wrist_pitch" joint="joint4" kp="80" kv="4" ctrlrange="-1.5708 1.5708"/>
+        <position name="srv_wrist_roll" joint="joint5" kp="80" kv="4" ctrlrange="-3.1415 3.1415"/>
         <position name="srv_gripper_left" joint="gripper_left_joint" kp="100" kv="5" ctrlrange="0 0.03"/>
         <position name="srv_gripper_right" joint="gripper_right_joint" kp="100" kv="5" ctrlrange="0 0.03"/>
     </actuator>
