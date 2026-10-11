@@ -138,8 +138,29 @@ private:
                 // PHASE 4.2: DEPTH LOOKUP & PINHOLE BACK-PROJECTION (CAMERA FRAME)
                 // ----------------------------------------------------------------------
                 if (!depth_image.empty()) {
-                    float Z_cam = depth_image.at<float>(static_cast<int>(v), static_cast<int>(u));
-                    if (Z_cam > 0.0f) {
+                    // 5x5 Median depth lookup to filter noise and ignore foreground arm links (< 0.30m)
+                    float Z_cam = 0.0f;
+                    std::vector<float> valid_depths;
+                    int u_int = static_cast<int>(u);
+                    int v_int = static_cast<int>(v);
+
+                    for (int dy = -2; dy <= 2; ++dy) {
+                        for (int dx = -2; dx <= 2; ++dx) {
+                            int py = std::clamp(v_int + dy, 0, depth_image.rows - 1);
+                            int px = std::clamp(u_int + dx, 0, depth_image.cols - 1);
+                            float d = depth_image.at<float>(py, px);
+                            if (d > 0.30f && d < 2.0f) { // Tabletop workspace depth range
+                                valid_depths.push_back(d);
+                            }
+                        }
+                    }
+
+                    if (!valid_depths.empty()) {
+                        std::sort(valid_depths.begin(), valid_depths.end());
+                        Z_cam = valid_depths[valid_depths.size() / 2];
+                    }
+
+                    if (Z_cam > 0.30f) {
                         // Apply Pinhole Camera Back-Projection Formulas
                         double X_cam = ((u - cx) * Z_cam) / fx;
                         double Y_cam = ((v - cy) * Z_cam) / fy;

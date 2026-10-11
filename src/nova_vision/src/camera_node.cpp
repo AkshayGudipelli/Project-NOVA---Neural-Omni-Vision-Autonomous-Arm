@@ -146,7 +146,27 @@ private:
     }
 
     // Publish RGB & Depth Images ONLY when rendering is active
-    if (rendering_initialized_) {
+    if (rendering_initialized_ && sim_handle_ && sim_handle_->model) {
+      float extent = sim_handle_->model->stat.extent;
+      float znear = sim_handle_->model->vis.map.znear * extent;
+      float zfar = sim_handle_->model->vis.map.zfar * extent;
+
+      // Vertically flip RGB image (OpenGL reads bottom-to-top)
+      std::vector<unsigned char> flipped_rgb(width_ * height_ * 3);
+      // Vertically flip & convert depth buffer from OpenGL z-buffer [0,1] to metric meters
+      std::vector<float> metric_depth(width_ * height_);
+
+      for (int r = 0; r < height_; ++r) {
+        int src_r = height_ - 1 - r;
+        std::memcpy(&flipped_rgb[r * width_ * 3], &rgb_buffer_[src_r * width_ * 3], width_ * 3);
+
+        for (int c = 0; c < width_; ++c) {
+          float z_buf = depth_buffer_[src_r * width_ + c];
+          float z_metric = (znear * zfar) / (zfar - z_buf * (zfar - znear));
+          metric_depth[r * width_ + c] = z_metric;
+        }
+      }
+
       auto rgb_msg = sensor_msgs::msg::Image();
       rgb_msg.header.stamp = stamp;
       rgb_msg.header.frame_id = "camera_optical_frame";
@@ -155,7 +175,7 @@ private:
       rgb_msg.encoding = sensor_msgs::image_encodings::RGB8;
       rgb_msg.is_bigendian = false;
       rgb_msg.step = width_ * 3;
-      rgb_msg.data = rgb_buffer_;
+      rgb_msg.data = flipped_rgb;
       rgb_pub_->publish(rgb_msg);
 
       auto depth_msg = sensor_msgs::msg::Image();
@@ -167,7 +187,7 @@ private:
       depth_msg.is_bigendian = false;
       depth_msg.step = width_ * sizeof(float);
       depth_msg.data.resize(height_ * depth_msg.step);
-      std::memcpy(depth_msg.data.data(), depth_buffer_.data(), depth_msg.data.size());
+      std::memcpy(depth_msg.data.data(), metric_depth.data(), depth_msg.data.size());
       depth_pub_->publish(depth_msg);
     }
 

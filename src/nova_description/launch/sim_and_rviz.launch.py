@@ -26,8 +26,8 @@ def generate_launch_description():
         executable='static_transform_publisher',
         name='camera_tf_publisher',
         output='screen',
-        arguments=['--x', '0.0', '--y', '-0.28', '--z', '0.88',
-                   '--roll', '0.68', '--pitch', '0.0', '--yaw', '0.0',
+        arguments=['--x', '0.0', '--y', '-0.105', '--z', '0.46',
+                   '--roll', '0.885', '--pitch', '0.0', '--yaw', '0.0',
                    '--frame-id', 'base_link', '--child-frame-id', 'camera_optical_frame']
     )
 

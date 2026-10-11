@@ -20,6 +20,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 
 # Build Hardware-Ready Joint Controller Node
@@ -31,9 +32,18 @@ ament_target_dependencies(joint_controller_node
   trajectory_msgs
 )
 
+# Build Analytical IK Solver Node
+add_executable(ik_solver_node src/ik_solver_node.cpp)
+ament_target_dependencies(ik_solver_node
+  rclcpp
+  geometry_msgs
+  std_msgs
+)
+
 # Install binaries
 install(TARGETS
   joint_controller_node
+  ik_solver_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
