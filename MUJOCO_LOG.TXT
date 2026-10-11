@@ -46,3 +46,13 @@ WARNING Tue Sep 15 14:41:53 2026: ARB_clip_control unavailable while mjDEPTH_ZER
 
 WARNING Tue Sep 15 14:58:51 2026: ARB_clip_control unavailable while mjDEPTH_ZEROFAR requested, depth accuracy will be limited
 
+WARNING Sun Oct 11 15:15:42 2026: ARB_clip_control unavailable while mjDEPTH_ZEROFAR requested, depth accuracy will be limited
+
+WARNING Sun Oct 11 15:19:40 2026: ARB_clip_control unavailable while mjDEPTH_ZEROFAR requested, depth accuracy will be limited
+
+WARNING Sun Oct 11 15:40:35 2026: ARB_clip_control unavailable while mjDEPTH_ZEROFAR requested, depth accuracy will be limited
+
+WARNING Sun Oct 11 15:53:12 2026: ARB_clip_control unavailable while mjDEPTH_ZEROFAR requested, depth accuracy will be limited
+
+WARNING Sun Oct 11 15:54:55 2026: Nan, Inf or huge value in QACC at DOF 46. The simulation is unstable. Time = 46.2420.
+

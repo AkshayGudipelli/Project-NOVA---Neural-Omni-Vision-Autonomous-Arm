@@ -78,13 +78,13 @@
                                 <!-- Gripper Left Finger -->
                                 <body name="left_finger" pos="0.015 0 0.03">
                                     <joint name="gripper_left_joint" type="slide" axis="1 0 0" range="0 0.03"/>
-                                    <geom type="box" size="0.0025 0.0075 0.025" pos="0 0 0.025" rgba="0.15 0.15 0.15 1" class="tool_geom"/>
+                                    <geom type="box" size="0.003 0.015 0.025" pos="0 0 0.025" rgba="0.15 0.15 0.15 1" class="tool_geom" condim="4" friction="2.5 0.1 0.005" solref="0.01 1" solimp="0.95 0.99 0.001"/>
                                 </body>
 
                                 <!-- Gripper Right Finger -->
                                 <body name="right_finger" pos="-0.015 0 0.03">
                                     <joint name="gripper_right_joint" type="slide" axis="-1 0 0" range="0 0.03"/>
-                                    <geom type="box" size="0.0025 0.0075 0.025" pos="0 0 0.025" rgba="0.15 0.15 0.15 1" class="tool_geom"/>
+                                    <geom type="box" size="0.003 0.015 0.025" pos="0 0 0.025" rgba="0.15 0.15 0.15 1" class="tool_geom" condim="4" friction="2.5 0.1 0.005" solref="0.01 1" solimp="0.95 0.99 0.001"/>
                                 </body>
                             </body>
                         </body>
@@ -154,7 +154,7 @@
         <position name="srv_elbow_pitch" joint="joint3" kp="160" kv="8" ctrlrange="-1.5708 1.5708"/>
         <position name="srv_wrist_pitch" joint="joint4" kp="80" kv="4" ctrlrange="-1.5708 1.5708"/>
         <position name="srv_wrist_roll" joint="joint5" kp="80" kv="4" ctrlrange="-3.1415 3.1415"/>
-        <position name="srv_gripper_left" joint="gripper_left_joint" kp="100" kv="5" ctrlrange="0 0.03"/>
-        <position name="srv_gripper_right" joint="gripper_right_joint" kp="100" kv="5" ctrlrange="0 0.03"/>
+        <position name="srv_gripper_left" joint="gripper_left_joint" kp="300" kv="15" ctrlrange="0 0.03" forcerange="-50 50"/>
+        <position name="srv_gripper_right" joint="gripper_right_joint" kp="300" kv="15" ctrlrange="0 0.03" forcerange="-50 50"/>
     </actuator>
 </mujoco>

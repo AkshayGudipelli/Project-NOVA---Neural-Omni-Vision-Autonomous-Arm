@@ -8,27 +8,66 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 
 #include <vector>
+#include <string>
+#include <unordered_map>
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 
 using namespace std::chrono_literals;
 
-/* ======================================================================================
- * PROJECT NOVA — PHASE 4: 3D PERCEPTION & VISION PROCESSING PIPELINE
- * ======================================================================================
- * Subphase Breakdown:
- *   - Phase 4.1: 2D Color Segmentation & Centroid Extraction (HSV Thresholding)
- *   - Phase 4.2: Depth Map Lookup & Pinhole Back-Projection (2D Pixel + Depth -> 3D Camera Point)
- *   - Phase 4.3: Camera-to-Base Coordinate Frame Transformation (tf2 Listener)
- *   - Phase 4.4: 3D Target Pose Publishing & RViz Marker Visualization
- * ======================================================================================
- */
+struct ColorPreset {
+    std::string name;
+    cv::Scalar lower1;
+    cv::Scalar upper1;
+    cv::Scalar lower2{0, 0, 0};
+    cv::Scalar upper2{0, 0, 0};
+    bool dual_range{false};
+    float marker_r{1.0f};
+    float marker_g{0.0f};
+    float marker_b{0.0f};
+};
 
 class ObjectDetectionNode : public rclcpp::Node {
 
 public:
     ObjectDetectionNode() : Node("object_detection_node") {
+        setupColorPresets();
+
+        // Declare dynamic target_color parameter
+        this->declare_parameter<std::string>("target_color", "red");
+        target_color_ = this->get_parameter("target_color").as_string();
+        std::transform(target_color_.begin(), target_color_.end(), target_color_.begin(), ::tolower);
+
+        // Dynamic Parameter Reconfiguration Callback
+        param_callback_handle_ = this->add_on_set_parameters_callback(
+            [this](const std::vector<rclcpp::Parameter>& params) {
+                rcl_interfaces::msg::SetParametersResult result;
+                result.successful = true;
+                for (const auto& param : params) {
+                    if (param.get_name() == "target_color") {
+                        std::string new_color = param.as_string();
+                        std::transform(new_color.begin(), new_color.end(), new_color.begin(), ::tolower);
+                        if (presets_.find(new_color) != presets_.end()) {
+                            target_color_ = new_color;
+                            RCLCPP_INFO(this->get_logger(),
+                                "==========================================================");
+                            RCLCPP_INFO(this->get_logger(),
+                                "*** Target Color DYNAMICALLY Changed to: '%s' ***", target_color_.c_str());
+                            RCLCPP_INFO(this->get_logger(),
+                                "==========================================================");
+                        } else {
+                            result.successful = false;
+                            result.reason = "Unknown color. Available: red, orange, yellow, green, cyan, blue, purple, magenta, white, black";
+                            RCLCPP_WARN(this->get_logger(), "%s", result.reason.c_str());
+                        }
+                    }
+                }
+                return result;
+            });
 
         // Phase 4.1: Subscribing to 2D Color Camera Stream
         cam_data = this->create_subscription<sensor_msgs::msg::Image>(
@@ -44,9 +83,14 @@ public:
         tf2_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer);
 
-        //Phase 4.4: Publish the target pose and publish 3d Rviz Marker
+        // Phase 4.4: Publish the target pose and publish 3D RViz Marker
         target_obj_pose_pub = this->create_publisher<geometry_msgs::msg::PointStamped>("/target_object_pose", 10);
         marker_pub = this->create_publisher<visualization_msgs::msg::Marker>("/visualization_marker", 10);
+
+        RCLCPP_INFO(this->get_logger(),
+            "3D Perception Node Ready. Active Target Color: '%s'", target_color_.c_str());
+        RCLCPP_INFO(this->get_logger(),
+            "Available Presets: [red, orange, yellow, green, cyan, blue, purple, magenta, white, black]");
     }
 
 private:
@@ -55,6 +99,54 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr target_obj_pose_pub;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub;
     cv::Mat depth_image;
+
+    // Active color target & presets map
+    std::string target_color_{"red"};
+    std::unordered_map<std::string, ColorPreset> presets_;
+    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_handle_;
+
+    void setupColorPresets() {
+        // Red (dual range because Hue wraps around 0 and 180)
+        presets_["red"] = {"red", cv::Scalar(0, 120, 70), cv::Scalar(10, 255, 255),
+                           cv::Scalar(170, 120, 70), cv::Scalar(180, 255, 255), true, 1.0f, 0.0f, 0.0f};
+
+        // Orange (H ~ 11-25)
+        presets_["orange"] = {"orange", cv::Scalar(11, 130, 80), cv::Scalar(25, 255, 255),
+                              cv::Scalar(), cv::Scalar(), false, 1.0f, 0.5f, 0.0f};
+
+        // Yellow (H ~ 26-38)
+        presets_["yellow"] = {"yellow", cv::Scalar(26, 120, 80), cv::Scalar(38, 255, 255),
+                              cv::Scalar(), cv::Scalar(), false, 1.0f, 1.0f, 0.0f};
+
+        // Green (H ~ 39-85)
+        presets_["green"] = {"green", cv::Scalar(39, 100, 60), cv::Scalar(85, 255, 255),
+                             cv::Scalar(), cv::Scalar(), false, 0.0f, 1.0f, 0.0f};
+
+        // Cyan (H ~ 86-105)
+        presets_["cyan"] = {"cyan", cv::Scalar(86, 100, 60), cv::Scalar(105, 255, 255),
+                            cv::Scalar(), cv::Scalar(), false, 0.0f, 1.0f, 1.0f};
+
+        // Blue (H ~ 106-135)
+        presets_["blue"] = {"blue", cv::Scalar(106, 120, 60), cv::Scalar(135, 255, 255),
+                            cv::Scalar(), cv::Scalar(), false, 0.0f, 0.3f, 1.0f};
+
+        // Purple (H ~ 136-155)
+        presets_["purple"] = {"purple", cv::Scalar(136, 80, 40), cv::Scalar(155, 255, 255),
+                              cv::Scalar(), cv::Scalar(), false, 0.6f, 0.0f, 0.8f};
+
+        // Magenta / Pink (H ~ 145-169)
+        presets_["magenta"] = {"magenta", cv::Scalar(145, 100, 60), cv::Scalar(169, 255, 255),
+                               cv::Scalar(), cv::Scalar(), false, 1.0f, 0.0f, 1.0f};
+        presets_["pink"] = presets_["magenta"];
+
+        // White (Low S, High V)
+        presets_["white"] = {"white", cv::Scalar(0, 0, 180), cv::Scalar(180, 45, 255),
+                             cv::Scalar(), cv::Scalar(), false, 1.0f, 1.0f, 1.0f};
+
+        // Black (Low V)
+        presets_["black"] = {"black", cv::Scalar(0, 0, 0), cv::Scalar(180, 255, 55),
+                             cv::Scalar(), cv::Scalar(), false, 0.2f, 0.2f, 0.2f};
+    }
 
     // TF2 Listener & Buffer members
     std::unique_ptr<tf2_ros::Buffer> tf2_buffer;
@@ -103,11 +195,22 @@ private:
         cv::Mat hsv_img;
         cv::cvtColor(cv_ptr->image, hsv_img, cv::COLOR_BGR2HSV);
 
-        // Step 4.1b: Apply Color Threshold Mask for Target Object (Red Cube)
-        cv::Mat mask1, mask2, mask;
-        cv::inRange(hsv_img, cv::Scalar(0, 120, 70), cv::Scalar(10, 255, 255), mask1);
-        cv::inRange(hsv_img, cv::Scalar(170, 120, 70), cv::Scalar(180, 255, 255), mask2);
-        cv::bitwise_or(mask1, mask2, mask);
+        // Step 4.1b: Retrieve active color preset & apply HSV mask
+        auto it_preset = presets_.find(target_color_);
+        if (it_preset == presets_.end()) {
+            it_preset = presets_.find("red");
+        }
+        const auto& preset = it_preset->second;
+
+        cv::Mat mask;
+        if (preset.dual_range) {
+            cv::Mat mask1, mask2;
+            cv::inRange(hsv_img, preset.lower1, preset.upper1, mask1);
+            cv::inRange(hsv_img, preset.lower2, preset.upper2, mask2);
+            cv::bitwise_or(mask1, mask2, mask);
+        } else {
+            cv::inRange(hsv_img, preset.lower1, preset.upper1, mask);
+        }
 
         // Step 4.1c: Find Contours & Identify Target Shape (Filtering Noise & Table Background)
         std::vector<std::vector<cv::Point>> contours;
@@ -119,8 +222,8 @@ private:
         if (!contours.empty()) {
             for (size_t i = 0; i < contours.size(); i++) {
                 double area = cv::contourArea(contours[i]);
-                // Target the red cube (~940 px), reject background (> 5,000 px) and noise (< 100 px)
-                if (area > 100.0 && area < 5000.0 && area > max_area) {
+                // Reject table background (> 6,000 px) and camera noise (< 80 px)
+                if (area > 80.0 && area < 6000.0 && area > max_area) {
                     max_area = area;
                     max_idx = i;
                 }
@@ -128,12 +231,14 @@ private:
         }
 
         // Step 4.1d: Compute 2D Pixel Centroid (u, v) using Image Moments
-        if (max_idx != -1 && max_area > 100.0) {
+        if (max_idx != -1 && max_area > 80.0) {
             cv::Moments m = cv::moments(contours[max_idx]);
             if (m.m00 > 0) {
                 double u = m.m10 / m.m00; // Pixel Column u
                 double v = m.m01 / m.m00; // Pixel Row v
-                RCLCPP_INFO(this->get_logger(), "Target Detected at Pixel (u=%.1f, v=%.1f) | Area: %.1f", u, v, max_area);
+                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                    "Target [%s] Detected at Pixel (u=%.1f, v=%.1f) | Area: %.1f",
+                    preset.name.c_str(), u, v, max_area);
 
                 // ----------------------------------------------------------------------
                 // PHASE 4.2: DEPTH LOOKUP & PINHOLE BACK-PROJECTION (CAMERA FRAME)
@@ -203,9 +308,9 @@ private:
                             marker_msg.scale.y = 0.05;
                             marker_msg.scale.z = 0.05;
                             
-                            marker_msg.color.r = 1.0;
-                            marker_msg.color.g = 0.0;
-                            marker_msg.color.b = 0.0;
+                            marker_msg.color.r = preset.marker_r;
+                            marker_msg.color.g = preset.marker_g;
+                            marker_msg.color.b = preset.marker_b;
                             marker_msg.color.a = 1.0;
                             
                             marker_msg.pose.position = output_point.point;

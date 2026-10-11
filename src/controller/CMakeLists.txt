@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 project(controller)
 
 # Auto-fallback for macOS Sequoia/Ventura SDK issue in Conda/Pixi environment
@@ -41,10 +41,21 @@ ament_target_dependencies(ik_solver_node
   std_msgs
 )
 
+# Build Autonomous Pick-and-Place State Machine Node (Phase 6)
+add_executable(pick_place_sm_node src/pick_place_sm_node.cpp)
+target_include_directories(pick_place_sm_node PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+ament_target_dependencies(pick_place_sm_node
+  rclcpp
+  geometry_msgs
+  std_msgs
+  sensor_msgs
+)
+
 # Install binaries
 install(TARGETS
   joint_controller_node
   ik_solver_node
+  pick_place_sm_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
